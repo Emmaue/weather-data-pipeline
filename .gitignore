@@ -1,0 +1,36 @@
+# --- Security & Secrets (CRITICAL) ---
+.env
+.env.*
+*.pem
+*.key
+profiles.yml   # dbt credentials file (if stored locally)
+secrets.json
+
+# --- dbt (Data Build Tool) ---
+# Ignores compiled SQL and build artifacts
+target/
+dbt_packages/
+dbt_modules/
+logs/
+dbt_project.yml.bkp
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+
+# --- Virtual Environments ---
+# Common names for virtual env folders
+venv/
+.venv/
+env/
+.env_folder/
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS Generated Files ---
+.DS_Store      # Mac
+Thumbs.db      # Windows
