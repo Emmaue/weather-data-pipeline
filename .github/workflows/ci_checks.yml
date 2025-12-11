@@ -29,6 +29,17 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
 
     # --- NEW STEP: INTEGRATION TEST ---
+    - name: Debug Secrets
+      env:
+        MY_SECRET: ${{ secrets.SNOWFLAKE_USER }}
+      run: |
+        if [ -z "$MY_SECRET" ]; then
+          echo "❌ CRITICAL: SNOWFLAKE_USER is empty! The secret is missing or named wrong."
+        else
+          echo "✅ SUCCESS: SNOWFLAKE_USER was found (it is masked for security)."
+        fi
+
+
     - name: Test Snowflake Connection
       env:
         # This maps the secrets from GitHub to the Python script
