@@ -65,7 +65,7 @@ def connect_to_snowflake():
 def create_weather_table(conn):
     """Create weather table if it doesn't exist"""
     create_table_query = """
-    CREATE TABLE IF NOT EXISTS weather_data (
+    CREATE OR REPLACE TABLE IF EXISTS weather_data (
         id INTEGER AUTOINCREMENT,
         city STRING,
         country STRING,
