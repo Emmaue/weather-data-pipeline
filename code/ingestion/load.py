@@ -27,7 +27,7 @@ def get_snowflake_conn():
     )
     return conn
 
-def ensure_table_exists(conn):
+def ensure_table_exists(conn): 
     """
     Check if table exists, if not, create it.
     This makes the script 'Idempotent' - it works on fresh systems too.
