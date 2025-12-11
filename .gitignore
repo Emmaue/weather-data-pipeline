@@ -5,6 +5,8 @@
 *.key
 profiles.yml   # dbt credentials file (if stored locally)
 secrets.json
+snowflake_connection.txt
+
 
 # --- dbt (Data Build Tool) ---
 # Ignores compiled SQL and build artifacts
