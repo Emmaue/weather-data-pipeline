@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: snowflake_data  # You can name this whatever you want
+    database: TEST_DB
+    schema: TEST_SCHEMA
+    tables:
+      - name: COUNTRY
+      - name: WEATHER_DATA
