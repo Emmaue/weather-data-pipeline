@@ -1,0 +1,1 @@
+snowflake://Amaka:Iamchiamaka@111@RQOGEGI-DSC94587/TEST_DB/TEST_SCHEMA?warehouse=TEST_WH
