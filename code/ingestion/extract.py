@@ -95,3 +95,5 @@ if __name__ == "__main__":
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
         
     asyncio.run(run_extraction_async())
+
+    #nothing here just testing my CI to see if it works
