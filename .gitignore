@@ -6,6 +6,7 @@
 profiles.yml   # dbt credentials file (if stored locally)
 secrets.json
 snowflake_connection.txt
+actions-runner/
 
 
 # --- dbt (Data Build Tool) ---
