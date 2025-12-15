@@ -52,6 +52,10 @@ def on_failure_callback(context):
 
 # --- WRAPPERS ---
 def extract_wrapper():
+    # --- SABOTAGE LINE ---
+    raise ValueError("🚨 BOOM! This is a deliberate test failure! 🚨")
+    # ---------------------
+    
     os.chdir(PROJECT_ROOT)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
