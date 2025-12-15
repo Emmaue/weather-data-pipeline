@@ -4,23 +4,55 @@ from datetime import datetime, timedelta
 import sys
 import os
 import asyncio
+import requests # New import for sending alerts
+from dotenv import load_dotenv
 
 # --- PATH SETUP ---
 PROJECT_ROOT = '/home/ubuntu/weather-data-pipeline'
 CODE_DIR = '/home/ubuntu/weather-data-pipeline/code'
-
-# Add paths so Python can find your scripts
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, CODE_DIR)
+
+# Load env vars (to get the SLACK URL)
+load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
 
 # --- IMPORTS ---
 from ingestion.extract import run_extraction_async
 from ingestion.validate import process_s3_batches
 from ingestion.load import run_cloud_loading
 
+# --- SLACK ALERT FUNCTION ---
+def on_failure_callback(context):
+    """
+    This runs AUTOMATICALLY if a task fails.
+    """
+    webhook_url = os.getenv("SLACK_WEBHOOK_URL")
+    
+    if not webhook_url:
+        print("No Slack URL found in .env, skipping alert.")
+        return
+
+    # Get info about the failure
+    task_instance = context.get('task_instance')
+    task_id = task_instance.task_id
+    dag_id = task_instance.dag_id
+    execution_date = context.get('execution_date')
+    log_url = task_instance.log_url
+
+    # The Message to send
+    slack_msg = {
+        "text": f":rotating_light: *Pipeline Failed!* :rotating_light:\n\n*DAG:* {dag_id}\n*Task:* {task_id}\n*Time:* {execution_date}\n*Logs:* <{log_url}|Click here to view logs>"
+    }
+
+    try:
+        requests.post(webhook_url, json=slack_msg)
+        print("Slack alert sent successfully!")
+    except Exception as e:
+        print(f"Failed to send Slack alert: {e}")
+
 # --- WRAPPERS ---
 def extract_wrapper():
-    os.chdir(PROJECT_ROOT) # Manually change directory inside function
+    os.chdir(PROJECT_ROOT)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(run_extraction_async())
@@ -39,6 +71,8 @@ default_args = {
     'email_on_failure': False,
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
+    # THIS IS THE MAGIC CONNECTION:
+    'on_failure_callback': on_failure_callback
 }
 
 with DAG(
@@ -51,7 +85,6 @@ with DAG(
     tags=['production', 'weather'],
 ) as dag:
 
-    # Notice: NO 'cwd' argument here!
     t1 = PythonOperator(
         task_id='extract_to_s3',
         python_callable=extract_wrapper
