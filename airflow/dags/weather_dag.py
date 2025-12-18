@@ -8,10 +8,14 @@ import requests # New import for sending alerts
 from dotenv import load_dotenv
 
 # --- PATH SETUP ---
-PROJECT_ROOT = '/home/ubuntu/weather-data-pipeline'
-CODE_DIR = '/home/ubuntu/weather-data-pipeline/code'
+PROJECT_ROOT = '/opt/airflow'
+CODE_DIR = '/opt/airflow/code'
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, CODE_DIR)
+
+env_path = os.path.join(PROJECT_ROOT, '.env')
+if os.path.exists(env_path):
+    load_dotenv(env_path)
 
 # Load env vars (to get the SLACK URL)
 load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
@@ -52,10 +56,6 @@ def on_failure_callback(context):
 
 # --- WRAPPERS ---
 def extract_wrapper():
-    # --- SABOTAGE LINE ---
-    raise ValueError("🚨 BOOM! This is a deliberate test failure! 🚨")
-    # ---------------------
-    
     os.chdir(PROJECT_ROOT)
     if os.name == 'nt':
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
