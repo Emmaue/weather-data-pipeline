@@ -1,24 +1,24 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.bash import BashOperator
 from datetime import datetime, timedelta
 import sys
 import os
 import asyncio
-import requests # New import for sending alerts
+import requests
 from dotenv import load_dotenv
 
 # --- PATH SETUP ---
 PROJECT_ROOT = '/opt/airflow'
 CODE_DIR = '/opt/airflow/code'
+DBT_DIR = '/opt/airflow/dbt' 
+
 sys.path.insert(0, PROJECT_ROOT)
 sys.path.insert(0, CODE_DIR)
 
 env_path = os.path.join(PROJECT_ROOT, '.env')
 if os.path.exists(env_path):
     load_dotenv(env_path)
-
-# Load env vars (to get the SLACK URL)
-load_dotenv(os.path.join(PROJECT_ROOT, '.env'))
 
 # --- IMPORTS ---
 from ingestion.extract import run_extraction_async
@@ -27,38 +27,21 @@ from ingestion.load import run_cloud_loading
 
 # --- SLACK ALERT FUNCTION ---
 def on_failure_callback(context):
-    """
-    This runs AUTOMATICALLY if a task fails.
-    """
     webhook_url = os.getenv("SLACK_WEBHOOK_URL")
-    
     if not webhook_url:
-        print("No Slack URL found in .env, skipping alert.")
         return
-
-    # Get info about the failure
     task_instance = context.get('task_instance')
-    task_id = task_instance.task_id
-    dag_id = task_instance.dag_id
-    execution_date = context.get('execution_date')
-    log_url = task_instance.log_url
-
-    # The Message to send
     slack_msg = {
-        "text": f":rotating_light: *Pipeline Failed!* :rotating_light:\n\n*DAG:* {dag_id}\n*Task:* {task_id}\n*Time:* {execution_date}\n*Logs:* <{log_url}|Click here to view logs>"
+        "text": f":rotating_light: *Pipeline Failed!* :rotating_light:\n*Task:* {task_instance.task_id}\n*Logs:* <{task_instance.log_url}|View Logs>"
     }
-
     try:
         requests.post(webhook_url, json=slack_msg)
-        print("Slack alert sent successfully!")
     except Exception as e:
         print(f"Failed to send Slack alert: {e}")
 
 # --- WRAPPERS ---
 def extract_wrapper():
     os.chdir(PROJECT_ROOT)
-    if os.name == 'nt':
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(run_extraction_async())
 
 def validate_wrapper():
@@ -75,20 +58,20 @@ default_args = {
     'email_on_failure': False,
     'retries': 1,
     'retry_delay': timedelta(minutes=5),
-    # THIS IS THE MAGIC CONNECTION:
     'on_failure_callback': on_failure_callback
 }
 
 with DAG(
     'weather_production_pipeline',
     default_args=default_args,
-    description='Production ETL: API -> S3 -> Snowflake',
+    description='Production ETL: API -> S3 -> Snowflake -> dbt (Dev → Test → Prod)',
     schedule_interval='@hourly',
     start_date=datetime(2023, 1, 1),
     catchup=False,
     tags=['production', 'weather'],
 ) as dag:
 
+    # ===== INGESTION PIPELINE =====
     t1 = PythonOperator(
         task_id='extract_to_s3',
         python_callable=extract_wrapper
@@ -104,4 +87,42 @@ with DAG(
         python_callable=load_wrapper
     )
 
-    t1 >> t2 >> t3
+    # ===== DBT TRANSFORMATION PIPELINE =====
+    
+    dbt_env = {
+        'SNOWFLAKE_ACCOUNT': os.getenv('SNOWFLAKE_ACCOUNT'),
+        'SNOWFLAKE_USER': os.getenv('SNOWFLAKE_USER'),
+        'SNOWFLAKE_PASSWORD': os.getenv('SNOWFLAKE_PASSWORD'),
+        'SNOWFLAKE_ROLE': os.getenv('SNOWFLAKE_ROLE'), 
+        'SNOWFLAKE_WAREHOUSE': os.getenv('SNOWFLAKE_WAREHOUSE'),
+        'SNOWFLAKE_DATABASE': os.getenv('SNOWFLAKE_DATABASE'),
+        'SNOWFLAKE_SCHEMA': os.getenv('SNOWFLAKE_SCHEMA'),
+        'PATH': os.getenv('PATH') # Keep system path
+    }
+
+    # Step 1: Run transformations in DEV schema
+    dbt_dev_run = BashOperator(
+        task_id='dbt_dev_run',
+        bash_command=f'cd {DBT_DIR} && dbt deps --profiles-dir . && dbt run --profiles-dir . --target dev 2>&1',
+        env=dbt_env,
+        append_env=True 
+    )
+
+    # Step 2: Test the DEV data (THE QUALITY GATE)
+    dbt_dev_test = BashOperator(
+        task_id='dbt_dev_test',
+        bash_command=f'cd {DBT_DIR} && dbt test --profiles-dir . --target dev 2>&1',
+        env=dbt_env,
+        append_env=True
+    )
+
+    # Step 3: If tests pass, promote to PROD schema
+    dbt_prod_run = BashOperator(
+        task_id='dbt_prod_run',
+        bash_command=f'cd {DBT_DIR} && dbt deps --profiles-dir . && dbt run --profiles-dir . --target prod 2>&1',
+        env=dbt_env,
+        append_env=True
+    )
+
+    # ===== PIPELINE FLOW =====
+    t1 >> t2 >> t3 >> dbt_dev_run >> dbt_dev_test >> dbt_prod_run

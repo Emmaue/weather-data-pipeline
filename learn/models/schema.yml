@@ -1,0 +1,11 @@
+version: 2
+
+models:
+  - name: mart_final
+    columns:
+      - name: temperature_celsius
+        tests:
+          - not_null
+          # Fail if temp is unrealistic (Data Quality Check)
+          - dbt_utils.expression_is_true:
+              expression: ">= -60"

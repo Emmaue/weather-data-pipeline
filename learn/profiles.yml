@@ -1,0 +1,27 @@
+weather_project:
+  target: dev  # Default to dev (safety first!)
+  outputs:
+    dev:
+      type: snowflake
+      # Dev uses a safe, sandbox schema
+      schema: WEATHER_DEV
+      # Everything else stays the same
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+      threads: 1
+
+    prod:
+      type: snowflake
+      # Prod uses the real schema
+      schema: WEATHER_PROD
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: "{{ env_var('SNOWFLAKE_USER') }}"
+      password: "{{ env_var('SNOWFLAKE_PASSWORD') }}"
+      role: "{{ env_var('SNOWFLAKE_ROLE') }}"
+      warehouse: "{{ env_var('SNOWFLAKE_WAREHOUSE') }}"
+      database: "{{ env_var('SNOWFLAKE_DATABASE') }}"
+      threads: 4 # More threads for faster prod runs

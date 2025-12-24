@@ -10,13 +10,12 @@ weather_info as (
 
 select
     -- 1. Create a Surrogate Key (Unique Hash)
-    -- We combine the unique IDs from both sides to make a new unique key
     md5(cast(w.weather_id as varchar) || '-' || cast(c.country_id as varchar)) as unique_key,
 
     -- 2. Select columns from Weather
     w.weather_id,
     w.city,
-    w.temperature,
+    w.temperature as temperature_celsius, -- <--- CHANGED THIS LINE (Added alias)
     w.humidity,
 
     -- 3. Select columns from Country
