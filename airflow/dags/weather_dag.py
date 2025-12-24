@@ -101,9 +101,10 @@ with DAG(
     }
 
     # Step 1: Run transformations in DEV schema
+    # REMOVED: 'dbt deps' to prevent hourly permission/lock issues
     dbt_dev_run = BashOperator(
         task_id='dbt_dev_run',
-        bash_command=f'cd {DBT_DIR} && dbt deps --profiles-dir . && dbt run --profiles-dir . --target dev 2>&1',
+        bash_command=f'cd {DBT_DIR} && dbt run --profiles-dir . --target dev 2>&1',
         env=dbt_env,
         append_env=True 
     )
@@ -117,9 +118,10 @@ with DAG(
     )
 
     # Step 3: If tests pass, promote to PROD schema
+    # REMOVED: 'dbt deps' here as well
     dbt_prod_run = BashOperator(
         task_id='dbt_prod_run',
-        bash_command=f'cd {DBT_DIR} && dbt deps --profiles-dir . && dbt run --profiles-dir . --target prod 2>&1',
+        bash_command=f'cd {DBT_DIR} && dbt run --profiles-dir . --target prod 2>&1',
         env=dbt_env,
         append_env=True
     )
