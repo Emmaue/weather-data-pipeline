@@ -1,32 +1,44 @@
-version: '3'
+version: "3"
+
 services:
   postgres:
     image: postgres:13
     environment:
-      - POSTGRES_USER=airflow
-      - POSTGRES_PASSWORD=airflow
-      - POSTGRES_DB=airflow
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "airflow"]
       interval: 5s
       retries: 5
+    ports:
+      - "5435:5432"
+
+  mongo:
+    image: mongo:6.0
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongo-data:/data/db
 
   webserver:
     build: .
     command: webserver
     ports:
-      - 8080:8080
-    # FIX: env_file sits here (same level as 'environment')
+      - "8080:8080"
     env_file:
       - .env
     environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: 46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./code:/opt/airflow/code
@@ -39,40 +51,39 @@ services:
   scheduler:
     build: .
     command: scheduler
-    # FIX: Added env_file here too
     env_file:
       - .env
     environment:
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__CORE__FERNET_KEY=46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
-      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
+      AIRFLOW__CORE__FERNET_KEY: 46BKJoQYlPPOexq0OhDZnIlNepKFf87WFwLbfzqDDho=
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./code:/opt/airflow/code
       - ./logs:/opt/airflow/logs
       - ./learn:/opt/airflow/dbt
-      
     depends_on:
       postgres:
         condition: service_healthy
 
   dashboard:
     build: .
-    entrypoint: ["/bin/bash", "-c"]
     command: streamlit run dashboard.py
     ports:
-      - 8501:8501
-    # FIX: Added env_file here too
+      - "8501:8501"
     env_file:
       - .env
     volumes:
       - ./dashboard:/opt/airflow/dashboard
-      - ./weather-data-pipeline:/opt/airflow/weather-data-pipeline
     working_dir: /opt/airflow
     depends_on:
       - webserver
 
 volumes:
   postgres-db-volume:
+  mongo-data:
