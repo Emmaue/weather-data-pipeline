@@ -15,7 +15,18 @@ clean-targets:
 
 models:
   weather_project:
-    staging:
-      +materialized: view
-    mart:
-      +materialized: table
+    # 1. Weather Domain Configuration
+    weather:
+      +schema: weather  # Creates schema: <target>_weather
+      staging:
+        +materialized: view
+      mart:
+        +materialized: table
+
+    # 2. Crypto Domain Configuration
+    crypto:
+      +schema: crypto   # Creates schema: <target>_crypto
+      staging:
+        +materialized: view
+      marts:
+        +materialized: table

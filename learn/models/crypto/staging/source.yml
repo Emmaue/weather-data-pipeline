@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: crypto_raw
+    # In 'dev', this points to your dev schema. In 'prod', it points to prod.
+    # You define the database/schema in your profiles.yml or here.
+    # Assuming your raw JSON load lands in 'TEST_SCHEMA' or similar for now:
+    database: TEST_DB
+    schema: TEST_SCHEMA 
+    tables:
+      - name: stg_bitcoin
+      - name: stg_market_snapshots
