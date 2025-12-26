@@ -19,8 +19,7 @@ def get_s3_client():
 
 def upload_to_s3(data, folder, filename):
     """
-    Uploads a dict to S3.
-    Target: s3://bucket/folder/filename
+    Uploads a dict (or list of dicts) to S3.
     """
     s3 = get_s3_client()
     key = f"{folder}/{filename}"
@@ -29,7 +28,7 @@ def upload_to_s3(data, folder, filename):
         s3.put_object(
             Bucket=BUCKET_NAME,
             Key=key,
-            Body=json.dumps(data, indent=4),
+            Body=json.dumps(data, indent=None, default=str), # default=str handles dates
             ContentType='application/json'
         )
         print(f"☁️  Uploaded to S3: s3://{BUCKET_NAME}/{key}")
@@ -42,7 +41,6 @@ def list_s3_files(folder):
     """List files in an S3 folder (prefix)"""
     s3 = get_s3_client()
     try:
-        # Ensure folder ends with /
         if not folder.endswith('/'):
             folder += '/'
             
@@ -55,19 +53,32 @@ def list_s3_files(folder):
         return []
 
 def read_from_s3(key):
-    """Read and parse a JSON file from S3"""
+    """
+    Read and parse a JSON file from S3.
+    **SMART PARSER**: Handles both Standard JSON and NDJSON.
+    """
     s3 = get_s3_client()
     try:
         response = s3.get_object(Bucket=BUCKET_NAME, Key=key)
         content = response['Body'].read().decode('utf-8')
-        return json.loads(content)
+        
+        try:
+            # Attempt 1: Standard JSON (Array of Objects)
+            return json.loads(content)
+        except json.JSONDecodeError:
+            # Attempt 2: NDJSON (Newline Delimited) - The fix for your error
+            data = []
+            for line in content.splitlines():
+                if line.strip():
+                    data.append(json.loads(line))
+            return data
+            
     except Exception as e:
         print(f"❌ Error reading {key}: {e}")
         return None
 
 def move_s3_object(source_key, dest_folder):
     """
-    'Move' in S3 is actually Copy + Delete.
     Moves file from 'data/raw/file.json' to 'data/archive/file.json'
     """
     s3 = get_s3_client()
