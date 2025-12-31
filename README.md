@@ -178,7 +178,9 @@ dbt provides the logical unification layer across both pipelines.
 🔹 **Infrastructure as Code**
 * The entire environment (Airflow Scheduler, Webserver, Postgres Backend) is defined in `docker-compose.yaml` for instant reproducibility.
 
-<img width="1024" height="559" alt="image" src="https://github.com/user-attachments/assets/d9c7538d-3193-4396-8b9b-407beb429e83" />
+<img width="2816" height="1536" alt="Gemini_Generated_Image_jqloysjqloysjqlo" src="https://github.com/user-attachments/assets/6257b0f2-9fcd-4273-a978-587b3314d111" />
+
+
 *full platform architecture*
 ---
 
@@ -301,6 +303,7 @@ if __name__ == "__main__":
 ```
 
 <img width="1075" height="409" alt="image" src="https://github.com/user-attachments/assets/3fe265ee-5e3f-42f1-9b7f-dad3adb95ea7" />
+
 *Data loaded in s3* 
 
 2️⃣ S3 Data Quality Routing
